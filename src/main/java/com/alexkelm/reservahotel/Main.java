@@ -1,4 +1,4 @@
 package com.alexkelm.reservahotel;
 
-public class Test {
+public class Main {
 }
