@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.DatePicker?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.segovia.reservahotel.controllers.ReservasController"
+      spacing="10">
+    <children>
+        <Label text="Gestión de Reservas" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <HBox spacing="10">
+            <ComboBox fx:id="cbCliente" promptText="Cliente"/>
+            <DatePicker fx:id="dpInicio" promptText="Desde"/>
+            <DatePicker fx:id="dpFin" promptText="Hasta"/>
+            <TextField fx:id="txtAbono" promptText="Abono"/>
+        </HBox>
+        <HBox spacing="10">
+            <ComboBox fx:id="cbHabitacion

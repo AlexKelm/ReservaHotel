@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.segovia.reservahotel.controllers.ClientesController"
+      spacing="10">
+    <children>
+        <Label text="Gestión de Clientes" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <TableView fx:id="tablaClientes" prefHeight="250">
+            <columns>
+                <TableColumn text="Nombre" fx:id="colNombre" prefWidth="120"/>
+                <TableColumn text="Apellido" fx:id="colApellido" prefWidth="120"/>
+                <TableColumn text="DNI" fx:id="colDni" prefWidth="120"/>
+            </columns>
+        </TableView>
+        <HBox spacing="10">
+            <TextField fx:id="txtNombre" promptText="Nombre"/>
+            <TextField fx:id="txtApellido" promptText="Apellido"/>
+            <TextField fx:id="txtDni" promptText="DNI"/>
+        </HBox>
+        <HBox spacing="10">
+            <TextField fx:id="txtTelefono" promptText="Teléfono"/>
+            <TextField fx:id="txtEmail" promptText="Email"/>
+            <ComboBox fx:id="cbTipo" promptText="Tipo"/>
+        </HBox>
+        <Button text="Guardar" onAction="#onGuardar"/>
+    </children>
+</VBox>
