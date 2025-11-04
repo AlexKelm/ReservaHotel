@@ -1,14 +1,17 @@
 package com.segovia.reservahotel.controllers;
 
+import com.segovia.reservahotel.dao.HabitacionDAO;
+import com.segovia.reservahotel.dao.ReservaDAO;
 import com.segovia.reservahotel.models.Usuario;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -21,45 +24,71 @@ public class DashboardController {
     @FXML
     private Label lblUsuarioActivo;
 
-    // lo seteamos por defecto, pero lo vamos a pisar desde el login
+    @FXML
+    private Button btnUsuarios;
+
+    private Usuario usuarioLogueado;
+    private final HabitacionDAO habitacionDAO = new HabitacionDAO();
+    private final ReservaDAO reservaDAO = new ReservaDAO();
+
     public void initialize() {
         lblUsuarioActivo.setText("Usuario: admin");
+
+        int anuladas = reservaDAO.anularReservasPendientesAntiguas(2);
+        if (anuladas > 0) {
+            System.out.println("Se anularon automáticamente " + anuladas + " reservas pendientes antiguas.");
+        }
+
+        habitacionDAO.actualizarEstadosHabitacion();
+
+        mostrarInicio();
     }
 
-    // ====== MÉTODO QUE TE FALTABA ======
     public void setUsuarioLogueado(Usuario usuario) {
+        this.usuarioLogueado = usuario;
         if (usuario != null) {
             lblUsuarioActivo.setText("Usuario: " + usuario.getUsername());
+            configurarVisibilidadPorRol(usuario.getRol());
         } else {
             lblUsuarioActivo.setText("Usuario: desconocido");
+            if (btnUsuarios != null) {
+                btnUsuarios.setVisible(false);
+                btnUsuarios.setManaged(false);
+            }
         }
     }
-    // ===================================
+
+    private void configurarVisibilidadPorRol(String rol) {
+        boolean esAdmin = "Administrador".equalsIgnoreCase(rol);
+        if (btnUsuarios != null) {
+            btnUsuarios.setVisible(esAdmin);
+            btnUsuarios.setManaged(esAdmin);
+        }
+    }
 
     @FXML
     private void mostrarInicio() {
-        cambiarVista("inicio.fxml");
+        cambiarVista("/com/segovia/reservahotel/inicio.fxml");
     }
 
     @FXML
     private void mostrarClientes() {
-        cambiarVista("clientes-view.fxml"); // nombre real de tu recurso
+        cambiarVista("/com/segovia/reservahotel/clientes-view.fxml");
     }
 
     @FXML
     private void mostrarHabitaciones() {
-        cambiarVista("habitaciones-view.fxml");
+        cambiarVista("/com/segovia/reservahotel/habitaciones-view.fxml");
     }
 
     @FXML
     private void mostrarReservas() {
-        cambiarVista("reservas-view.fxml");
+        cambiarVista("/com/segovia/reservahotel/reservas-view.fxml");
     }
 
     @FXML
     private void mostrarUsuarios() {
-        // cuando agreguemos usuarios-view.fxml, lo llamamos acá
-        cambiarVista("usuarios-view.fxml");
+        cambiarVista("/com/segovia/reservahotel/usuarios-view.fxml");
     }
 
     @FXML
@@ -69,14 +98,11 @@ public class DashboardController {
         alert.setHeaderText("¿Desea cerrar la sesión actual?");
         alert.setContentText("Perderá los cambios no guardados.");
 
-        // versión segura: si no elige nada, toma CANCEL
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             try {
-                // 1) cerrar la ventana actual
                 Stage stageActual = (Stage) mainContent.getScene().getWindow();
                 stageActual.close();
 
-                // 2) volver a mostrar el login
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/segovia/reservahotel/login-view.fxml"));
                 Scene scene = new Scene(loader.load());
 
@@ -91,10 +117,18 @@ public class DashboardController {
         }
     }
 
-    private void cambiarVista(String nombreVista) {
+    private void cambiarVista(String fxmlPath) {
         try {
-            // OJO: en tu zip los fxml están en /com/segovia/reservahotel/ directamente
-            Node vista = FXMLLoader.load(getClass().getResource("/com/segovia/reservahotel/" + nombreVista));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Node vista = loader.load();
+
+            // Si el controlador de la nueva vista necesita el usuario, se lo pasamos
+            Object controller = loader.getController();
+            if (controller instanceof ReservasController) {
+                ((ReservasController) controller).setUsuarioLogueado(this.usuarioLogueado);
+            }
+            // Podrías añadir más `instanceof` para otros controladores si lo necesitas
+
             mainContent.getChildren().setAll(vista);
         } catch (IOException e) {
             e.printStackTrace();

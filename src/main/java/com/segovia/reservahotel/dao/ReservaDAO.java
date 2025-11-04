@@ -1,6 +1,7 @@
 package com.segovia.reservahotel.dao;
 
 import com.segovia.reservahotel.models.Reserva;
+import com.segovia.reservahotel.models.ReservaInfo;
 import com.segovia.reservahotel.util.DBConnection;
 
 import java.sql.*;
@@ -11,7 +12,7 @@ import java.util.List;
 public class ReservaDAO {
 
     public int insertar(Reserva r) {
-        String sql = "INSERT INTO reserva (idUsuario, idCliente, fechaInicio, fechaFin, estado, abono) VALUES (?,?,?,?,?,?)";
+        String sql = "INSERT INTO reserva (idUsuario, idCliente, fechaInicio, fechaFin, estado, abono, precioTotal) VALUES (?,?,?,?,?,?,?)";
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -21,93 +22,137 @@ public class ReservaDAO {
             ps.setDate(4, Date.valueOf(r.getFechaFin()));
             ps.setString(5, r.getEstado());
             ps.setDouble(6, r.getAbono());
+            ps.setDouble(7, r.getPrecioTotal());
 
             int filas = ps.executeUpdate();
             if (filas > 0) {
                 ResultSet rs = ps.getGeneratedKeys();
                 if (rs.next()) {
-                    return rs.getInt(1); // id generado
+                    return rs.getInt(1);
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return -1; // error
+        return -1;
     }
 
-    public boolean actualizarEstado(int idReserva, String nuevoEstado) {
-        String sql = "UPDATE reserva SET estado=? WHERE idReserva=?";
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+    public boolean borrar(int idReserva) {
+        String sqlDeleteHabitaciones = "DELETE FROM reserva_habitacion WHERE idReserva = ?";
+        String sqlDeleteReserva = "DELETE FROM reserva WHERE idReserva = ?";
+        Connection con = null;
+        try {
+            con = DBConnection.getConnection();
+            if (con == null) return false;
 
-            ps.setString(1, nuevoEstado);
-            ps.setInt(2, idReserva);
-            return ps.executeUpdate() > 0;
+            // Iniciar transacción
+            con.setAutoCommit(false);
+
+            // 1. Borrar de la tabla de unión
+            try (PreparedStatement psHab = con.prepareStatement(sqlDeleteHabitaciones)) {
+                psHab.setInt(1, idReserva);
+                psHab.executeUpdate();
+            }
+
+            // 2. Borrar de la tabla principal
+            try (PreparedStatement psRes = con.prepareStatement(sqlDeleteReserva)) {
+                psRes.setInt(1, idReserva);
+                int filasAfectadas = psRes.executeUpdate();
+                if (filasAfectadas > 0) {
+                    con.commit(); // Confirmar transacción
+                    return true;
+                }
+            }
+
+            // Si algo falla, revertir
+            con.rollback();
+            return false;
 
         } catch (SQLException e) {
             e.printStackTrace();
+            if (con != null) {
+                try {
+                    con.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            return false;
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return false;
     }
 
-    // Ingresar un abono y confirmar
-    public boolean abonarReserva(int idReserva, double monto) {
-        String sql = "UPDATE reserva SET abono = abono + ?, estado='Confirmada' WHERE idReserva=?";
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+    public List<ReservaInfo> listarReservasInfo() {
+        List<ReservaInfo> lista = new ArrayList<>();
+        String sql = "SELECT r.idReserva, CONCAT(c.nombre, ' ', c.apellido) AS cliente, " +
+                     "r.fechaInicio, r.fechaFin, r.estado, r.abono, r.precioTotal " +
+                     "FROM reserva r " +
+                     "JOIN clientes c ON r.idCliente = c.idCliente " +
+                     "ORDER BY r.fechaInicio DESC";
 
-            ps.setDouble(1, monto);
-            ps.setInt(2, idReserva);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    // Anular por nombre o apellido (JOIN)
-    public boolean anularPorNombreApellido(String texto) {
-        String sql = "UPDATE reserva r " +
-                "JOIN clientes c ON r.idCliente = c.idCliente " +
-                "SET r.estado='Anulada' " +
-                "WHERE (c.nombre LIKE ? OR c.apellido LIKE ?) AND r.estado='Pendiente'";
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, "%" + texto + "%");
-            ps.setString(2, "%" + texto + "%");
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public List<Reserva> listar() {
-        List<Reserva> lista = new ArrayList<>();
-        String sql = "SELECT * FROM reserva";
         try (Connection con = DBConnection.getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
 
             while (rs.next()) {
-                Reserva r = new Reserva(
+                lista.add(new ReservaInfo(
                         rs.getInt("idReserva"),
-                        rs.getInt("idUsuario"),
-                        rs.getInt("idCliente"),
+                        rs.getString("cliente"),
                         rs.getDate("fechaInicio").toLocalDate(),
                         rs.getDate("fechaFin").toLocalDate(),
                         rs.getString("estado"),
-                        rs.getDouble("abono")
-                );
-                lista.add(r);
+                        rs.getDouble("abono"),
+                        rs.getDouble("precioTotal")
+                ));
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return lista;
+    }
+
+    public boolean confirmarPago(int idReserva) {
+        String sql = "UPDATE reserva SET estado = 'Confirmada' WHERE idReserva = ? AND estado = 'Pendiente'";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idReserva);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean anularReserva(int idReserva) {
+        String sql = "UPDATE reserva SET estado = 'Anulada' WHERE idReserva = ?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idReserva);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public int anularReservasPendientesAntiguas(int diasAntiguedad) {
+        String sql = "UPDATE reserva SET estado = 'Anulada' " +
+                     "WHERE estado = 'Pendiente' AND fechaCreacion < NOW() - INTERVAL ? DAY";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, diasAntiguedad);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

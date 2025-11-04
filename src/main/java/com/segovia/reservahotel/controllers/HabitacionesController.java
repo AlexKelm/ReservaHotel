@@ -32,8 +32,6 @@ public class HabitacionesController {
     private ComboBox<String> cbCaracteristica;
     @FXML
     private TextField txtPrecio;
-    @FXML
-    private ComboBox<String> cbEstado;
 
     private final HabitacionDAO habitacionDAO = new HabitacionDAO();
     private ObservableList<Habitacion> lista;
@@ -42,7 +40,6 @@ public class HabitacionesController {
     public void initialize() {
         cbTipoCama.setItems(FXCollections.observableArrayList("Single", "Doble", "Queen", "King"));
         cbCaracteristica.setItems(FXCollections.observableArrayList("Estandar", "Lujo"));
-        cbEstado.setItems(FXCollections.observableArrayList("Libre", "Reservada", "Ocupada"));
 
         colId.setCellValueFactory(data -> new javafx.beans.property.SimpleIntegerProperty(data.getValue().getIdHabitacion()));
         colCapacidad.setCellValueFactory(data -> new javafx.beans.property.SimpleIntegerProperty(data.getValue().getCapacidad()));
@@ -55,6 +52,8 @@ public class HabitacionesController {
     }
 
     private void cargarTabla() {
+        // Actualizamos estados antes de cargar, para tener la info más reciente
+        habitacionDAO.actualizarEstadosHabitacion();
         lista = FXCollections.observableArrayList(habitacionDAO.listar());
         tablaHabitaciones.setItems(lista);
     }
@@ -66,7 +65,7 @@ public class HabitacionesController {
         h.setTipoDeCama(cbTipoCama.getValue());
         h.setCaracteristicas(cbCaracteristica.getValue());
         h.setPrecio(Double.parseDouble(txtPrecio.getText()));
-        h.setEstado(cbEstado.getValue() == null ? "Libre" : cbEstado.getValue());
+        h.setEstado("Libre"); // Nueva habitación siempre está libre
 
         if (habitacionDAO.insertar(h)) {
             cargarTabla();
@@ -83,7 +82,7 @@ public class HabitacionesController {
         sel.setTipoDeCama(cbTipoCama.getValue());
         sel.setCaracteristicas(cbCaracteristica.getValue());
         sel.setPrecio(Double.parseDouble(txtPrecio.getText()));
-        sel.setEstado(cbEstado.getValue());
+        // El estado ya no se edita manualmente
 
         if (habitacionDAO.actualizar(sel)) {
             cargarTabla();
@@ -109,7 +108,7 @@ public class HabitacionesController {
         cbTipoCama.setValue(sel.getTipoDeCama());
         cbCaracteristica.setValue(sel.getCaracteristicas());
         txtPrecio.setText(String.valueOf(sel.getPrecio()));
-        cbEstado.setValue(sel.getEstado());
+        // El ComboBox de estado ya no existe
     }
 
     private void limpiar() {
@@ -117,6 +116,5 @@ public class HabitacionesController {
         cbTipoCama.setValue(null);
         cbCaracteristica.setValue(null);
         txtPrecio.clear();
-        cbEstado.setValue(null);
     }
 }

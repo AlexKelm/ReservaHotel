@@ -2,6 +2,7 @@ package com.segovia.reservahotel.dao;
 
 import com.segovia.reservahotel.models.Usuario;
 import com.segovia.reservahotel.util.DBConnection;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,18 +11,20 @@ import java.util.List;
 public class UsuarioDAO {
 
     public Usuario login(String username, String password) {
-        String sql = "SELECT * FROM usuarios WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM usuarios WHERE username = ?";
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con != null ? con.prepareStatement(sql) : null) {
 
             if (con == null) return null;
 
             ps.setString(1, username);
-            ps.setString(2, password);
 
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return mapearUsuario(rs);
+                String hashedPassword = rs.getString("password");
+                if (BCrypt.checkpw(password, hashedPassword)) {
+                    return mapearUsuario(rs);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -54,8 +57,9 @@ public class UsuarioDAO {
 
             if (con == null) return false;
 
+            String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
             ps.setString(1, username);
-            ps.setString(2, password);
+            ps.setString(2, hashedPassword);
             ps.setString(3, rol);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -83,7 +87,8 @@ public class UsuarioDAO {
             ps.setString(1, username);
             int index = 2;
             if (cambiarPass) {
-                ps.setString(2, password);
+                String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+                ps.setString(2, hashedPassword);
                 index = 3;
             }
             ps.setString(index, rol);

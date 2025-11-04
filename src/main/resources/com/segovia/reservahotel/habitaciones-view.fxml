@@ -6,32 +6,42 @@
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.segovia.reservahotel.controllers.HabitacionesController"
-      spacing="10">
-    <children>
-        <Label text="Gestión de Habitaciones" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-        <TableView fx:id="tablaHabitaciones" prefHeight="250">
-            <columns>
-                <TableColumn text="ID" fx:id="colId" prefWidth="50"/>
-                <TableColumn text="Capacidad" fx:id="colCapacidad" prefWidth="80"/>
-                <TableColumn text="Cama" fx:id="colCama" prefWidth="100"/>
-                <TableColumn text="Caract." fx:id="colCaract" prefWidth="100"/>
-                <TableColumn text="Precio" fx:id="colPrecio" prefWidth="80"/>
-                <TableColumn text="Estado" fx:id="colEstado" prefWidth="80"/>
-            </columns>
-        </TableView>
-        <HBox spacing="10">
-            <TextField fx:id="txtCapacidad" promptText="Capacidad"/>
-            <ComboBox fx:id="cbTipoCama" promptText="Tipo cama"/>
-            <ComboBox fx:id="cbCaracteristica" promptText="Característica"/>
-        </HBox>
-        <HBox spacing="10">
-            <TextField fx:id="txtPrecio" promptText="Precio"/>
-            <ComboBox fx:id="cbEstado" promptText="Estado"/>
-        </HBox>
-        <HBox spacing="10">
-            <Button text="Guardar" onAction="#onGuardar"/>
-            <Button text="Editar" onAction="#onEditar"/>
-            <Button text="Eliminar" onAction="#onEliminar"/>
-        </HBox>
-    </children>
+      spacing="10" style="-fx-padding: 20;">
+
+    <Label text="Gestión de Habitaciones" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+    <TableView fx:id="tablaHabitaciones" prefHeight="350" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn text="ID" fx:id="colId" prefWidth="50"/>
+            <TableColumn text="Capacidad" fx:id="colCapacidad" prefWidth="100"/>
+            <TableColumn text="Tipo de Cama" fx:id="colCama" prefWidth="150"/>
+            <TableColumn text="Características" fx:id="colCaract" prefWidth="150"/>
+            <TableColumn text="Precio/Noche" fx:id="colPrecio" prefWidth="120"/>
+            <TableColumn text="Estado Actual" fx:id="colEstado" prefWidth="120"/>
+        </columns>
+        <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+        </columnResizePolicy>
+    </TableView>
+
+    <GridPane hgap="10" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="25.0"/>
+            <ColumnConstraints percentWidth="25.0"/>
+            <ColumnConstraints percentWidth="25.0"/>
+            <ColumnConstraints percentWidth="25.0"/>
+        </columnConstraints>
+
+        <TextField fx:id="txtCapacidad" promptText="Capacidad" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="cbTipoCama" promptText="Tipo de Cama" maxWidth="Infinity" GridPane.columnIndex="1"/>
+        <ComboBox fx:id="cbCaracteristica" promptText="Categoría" maxWidth="Infinity" GridPane.columnIndex="2"/>
+        <TextField fx:id="txtPrecio" promptText="Precio" GridPane.columnIndex="3"/>
+    </GridPane>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Guardar" onAction="#onGuardar" style="-fx-background-color: #0e4c52; -fx-text-fill: white;"/>
+        <Button text="Editar" onAction="#onEditar" style="-fx-background-color: #f39c12; -fx-text-fill: white;"/>
+        <Button text="Eliminar" onAction="#onEliminar" style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+    </HBox>
+
 </VBox>

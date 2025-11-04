@@ -81,4 +81,9 @@ public class Cliente {
     public String getNombreCompleto() {
         return nombre + " " + apellido;
     }
+
+    @Override
+    public String toString() {
+        return getNombreCompleto(); // Esto es lo que mostrará el ComboBox
+    }
 }
