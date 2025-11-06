@@ -10,8 +10,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public class ReservasController {
@@ -272,7 +270,12 @@ public class ReservasController {
     private void mostrarAlerta(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
-        alert.setHeaderText("Por favor, corrija los siguientes errores:");
+        // Condicionalmente establecer el headerText
+        if (type == Alert.AlertType.ERROR || type == Alert.AlertType.WARNING) {
+            alert.setHeaderText("Por favor, corrija los siguientes errores:");
+        } else {
+            alert.setHeaderText(null); // No mostrar encabezado para información o éxito
+        }
         alert.setContentText(message);
         alert.showAndWait();
     }
