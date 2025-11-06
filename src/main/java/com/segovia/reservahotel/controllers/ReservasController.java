@@ -10,6 +10,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class ReservasController {
@@ -73,30 +75,35 @@ public class ReservasController {
         dpFin.valueProperty().addListener((obs, oldVal, newVal) -> actualizarHabitacionesDisponibles());
     }
 
-    private void actualizarHabitacionesDisponibles() {
-        LocalDate inicio = dpInicio.getValue();
-        LocalDate fin = dpFin.getValue();
+    private String validarCampos() {
+        StringBuilder errores = new StringBuilder();
 
-        if (inicio != null && fin != null && !fin.isBefore(inicio)) {
-            listHabitacionesSeleccionadas.getItems().clear();
-            cbHabitacion.setItems(FXCollections.observableArrayList(habitacionDAO.listarHabitacionesDisponibles(inicio, fin)));
-        } else {
-            cbHabitacion.getItems().clear();
+        if (cbCliente.getValue() == null) {
+            errores.append("Debe seleccionar un cliente.\n");
         }
-    }
-
-    private void cargarTablaReservas() {
-        habitacionDAO.actualizarEstadosHabitacion();
-        listaReservas = FXCollections.observableArrayList(reservaDAO.listarReservasInfo());
-        tablaReservas.setItems(listaReservas);
-    }
-
-    @FXML
-    private void onAgregarHabitacion() {
-        Habitacion h = cbHabitacion.getValue();
-        if (h != null && !listHabitacionesSeleccionadas.getItems().contains(h)) {
-            listHabitacionesSeleccionadas.getItems().add(h);
+        if (dpInicio.getValue() == null) {
+            errores.append("Debe seleccionar una fecha de inicio.\n");
         }
+        if (dpFin.getValue() == null) {
+            errores.append("Debe seleccionar una fecha de fin.\n");
+        }
+        if (dpInicio.getValue() != null && dpFin.getValue() != null && dpFin.getValue().isBefore(dpInicio.getValue())) {
+            errores.append("La fecha de fin no puede ser anterior a la fecha de inicio.\n");
+        }
+        if (listHabitacionesSeleccionadas.getItems().isEmpty()) {
+            errores.append("Debe añadir al menos una habitación a la reserva.\n");
+        }
+
+        try {
+            double abono = txtAbono.getText().trim().isEmpty() ? 0 : Double.parseDouble(txtAbono.getText());
+            if (abono < 0) {
+                errores.append("El abono no puede ser un número negativo.\n");
+            }
+        } catch (NumberFormatException e) {
+            errores.append("El abono debe ser un número válido.\n");
+        }
+
+        return errores.toString();
     }
 
     @FXML
@@ -106,19 +113,20 @@ public class ReservasController {
             return;
         }
 
-        Cliente c = cbCliente.getValue();
-        LocalDate fi = dpInicio.getValue();
-        LocalDate ff = dpFin.getValue();
-        double abono = txtAbono.getText().isEmpty() ? 0 : Double.parseDouble(txtAbono.getText());
-
-        if (c == null || fi == null || ff == null || listHabitacionesSeleccionadas.getItems().isEmpty()) {
-            mostrarAlerta(Alert.AlertType.WARNING, "Datos incompletos", "Complete todos los campos y seleccione al menos una habitación.");
+        String errores = validarCampos();
+        if (!errores.isEmpty()) {
+            mostrarAlerta(Alert.AlertType.WARNING, "Datos Inválidos", errores);
             return;
         }
 
+        Cliente c = cbCliente.getValue();
+        LocalDate fi = dpInicio.getValue();
+        LocalDate ff = dpFin.getValue();
+        double abono = txtAbono.getText().trim().isEmpty() ? 0 : Double.parseDouble(txtAbono.getText());
+
         long noches = ChronoUnit.DAYS.between(fi, ff);
         if (noches <= 0) {
-            mostrarAlerta(Alert.AlertType.WARNING, "Fechas Inválidas", "La fecha de fin debe ser posterior a la fecha de inicio.");
+            mostrarAlerta(Alert.AlertType.WARNING, "Fechas Inválidas", "La reserva debe ser de al menos una noche.");
             return;
         }
 
@@ -150,6 +158,32 @@ public class ReservasController {
             onLimpiarFormulario();
         } else {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudo guardar la reserva.");
+        }
+    }
+    
+    private void actualizarHabitacionesDisponibles() {
+        LocalDate inicio = dpInicio.getValue();
+        LocalDate fin = dpFin.getValue();
+
+        if (inicio != null && fin != null && !fin.isBefore(inicio)) {
+            listHabitacionesSeleccionadas.getItems().clear();
+            cbHabitacion.setItems(FXCollections.observableArrayList(habitacionDAO.listarHabitacionesDisponibles(inicio, fin)));
+        } else {
+            cbHabitacion.getItems().clear();
+        }
+    }
+
+    private void cargarTablaReservas() {
+        habitacionDAO.actualizarEstadosHabitacion();
+        listaReservas = FXCollections.observableArrayList(reservaDAO.listarReservasInfo());
+        tablaReservas.setItems(listaReservas);
+    }
+
+    @FXML
+    private void onAgregarHabitacion() {
+        Habitacion h = cbHabitacion.getValue();
+        if (h != null && !listHabitacionesSeleccionadas.getItems().contains(h)) {
+            listHabitacionesSeleccionadas.getItems().add(h);
         }
     }
 
@@ -238,7 +272,7 @@ public class ReservasController {
     private void mostrarAlerta(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
-        alert.setHeaderText(null);
+        alert.setHeaderText("Por favor, corrija los siguientes errores:");
         alert.setContentText(message);
         alert.showAndWait();
     }

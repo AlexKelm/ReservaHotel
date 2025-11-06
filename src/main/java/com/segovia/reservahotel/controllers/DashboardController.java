@@ -32,7 +32,6 @@ public class DashboardController {
     private final ReservaDAO reservaDAO = new ReservaDAO();
 
     public void initialize() {
-        lblUsuarioActivo.setText("Usuario: admin");
 
         int anuladas = reservaDAO.anularReservasPendientesAntiguas(2);
         if (anuladas > 0) {

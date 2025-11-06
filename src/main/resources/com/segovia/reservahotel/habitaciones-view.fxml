@@ -12,12 +12,12 @@
 
     <TableView fx:id="tablaHabitaciones" prefHeight="350" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn text="ID" fx:id="colId" prefWidth="50"/>
-            <TableColumn text="Capacidad" fx:id="colCapacidad" prefWidth="100"/>
-            <TableColumn text="Tipo de Cama" fx:id="colCama" prefWidth="150"/>
-            <TableColumn text="Características" fx:id="colCaract" prefWidth="150"/>
-            <TableColumn text="Precio/Noche" fx:id="colPrecio" prefWidth="120"/>
-            <TableColumn text="Estado Actual" fx:id="colEstado" prefWidth="120"/>
+            <TableColumn fx:id="colId" text="ID" prefWidth="50"/>
+            <TableColumn fx:id="colCapacidad" text="Capacidad" prefWidth="100"/>
+            <TableColumn fx:id="colCama" text="Tipo de Cama" prefWidth="150"/>
+            <TableColumn fx:id="colCaract" text="Características" prefWidth="150"/>
+            <TableColumn fx:id="colPrecio" text="Precio/Noche" prefWidth="120"/>
+            <TableColumn fx:id="colEstado" text="Estado Actual" prefWidth="120"/>
         </columns>
         <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
@@ -40,8 +40,9 @@
 
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <Button text="Guardar" onAction="#onGuardar" style="-fx-background-color: #0e4c52; -fx-text-fill: white;"/>
-        <Button text="Editar" onAction="#onEditar" style="-fx-background-color: #f39c12; -fx-text-fill: white;"/>
+        <!-- El botón Editar ha sido eliminado -->
         <Button text="Eliminar" onAction="#onEliminar" style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+        <Button text="Limpiar" onAction="#onLimpiar" style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
     </HBox>
 
 </VBox>

@@ -6,6 +6,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+
+import java.util.Optional;
 
 public class UsuariosController {
 
@@ -24,38 +27,51 @@ public class UsuariosController {
     private PasswordField txtPassword;
     @FXML
     private ComboBox<String> cbRol;
-    @FXML
-    private Label lblMensaje;
 
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
     private final ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList();
 
-    // para saber si estamos editando
     private Usuario usuarioSeleccionado = null;
 
     @FXML
     public void initialize() {
-        // columnas
-        colId.setCellValueFactory(cellData -> new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getIdUsuario()).asObject());
-        colUsername.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getUsername()));
-        colRol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRol()));
+        colId.setCellValueFactory(new PropertyValueFactory<>("idUsuario"));
+        colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
+        colRol.setCellValueFactory(new PropertyValueFactory<>("rol"));
 
-        // roles
         cbRol.setItems(FXCollections.observableArrayList("Administrador", "Recepcionista"));
 
-        // cargar datos
         cargarUsuarios();
 
-        // listener de selección
         tablaUsuarios.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
             if (newSel != null) {
                 usuarioSeleccionado = newSel;
                 txtUsername.setText(newSel.getUsername());
-                // contraseña NO la mostramos
+                txtPassword.clear(); // No mostramos la contraseña
                 cbRol.setValue(newSel.getRol());
-                lblMensaje.setText("");
             }
         });
+    }
+
+    private String validarCampos() {
+        StringBuilder errores = new StringBuilder();
+
+        if (txtUsername.getText().trim().isEmpty() || !txtUsername.getText().matches("^[a-zA-Z0-9]{3,20}$")) {
+            errores.append("El nombre de usuario es inválido (solo letras y números, 3-20 caracteres).\n");
+        }
+
+        // Validar contraseña solo si es un nuevo usuario o si se está intentando cambiar
+        if (usuarioSeleccionado == null || !txtPassword.getText().isEmpty()) {
+            if (txtPassword.getText().length() < 6) {
+                errores.append("La contraseña debe tener al menos 6 caracteres.\n");
+            }
+        }
+
+        if (cbRol.getValue() == null) {
+            errores.append("Debe seleccionar un rol para el usuario.\n");
+        }
+
+        return errores.toString();
     }
 
     private void cargarUsuarios() {
@@ -70,52 +86,41 @@ public class UsuariosController {
         txtUsername.clear();
         txtPassword.clear();
         cbRol.getSelectionModel().clearSelection();
-        lblMensaje.setText("");
         tablaUsuarios.getSelectionModel().clearSelection();
     }
 
     @FXML
     private void onGuardar() {
-        String username = txtUsername.getText();
-        String password = txtPassword.getText();
-        String rol = cbRol.getValue();
-
-        if (username == null || username.isBlank()
-                || rol == null || rol.isBlank()) {
-            lblMensaje.setText("Complete usuario y rol.");
+        String errores = validarCampos();
+        if (!errores.isEmpty()) {
+            mostrarAlerta(Alert.AlertType.WARNING, "Datos Inválidos", errores);
             return;
         }
 
-        // si es edición
+        boolean exito;
+        String username = txtUsername.getText().trim();
+        String password = txtPassword.getText(); // Puede estar vacío si no se cambia en edición
+        String rol = cbRol.getValue();
+
         if (usuarioSeleccionado != null) {
-            // si dejó la password vacía, no la cambiamos
-            boolean ok = usuarioDAO.actualizarUsuario(
+            // Edición
+            exito = usuarioDAO.actualizarUsuario(
                     usuarioSeleccionado.getIdUsuario(),
                     username,
-                    (password == null || password.isBlank()) ? null : password,
+                    password.isEmpty() ? null : password, // Si la contraseña está vacía, no la actualizamos
                     rol
             );
-            if (ok) {
-                lblMensaje.setText("Usuario actualizado.");
-                cargarUsuarios();
-                onNuevo();
-            } else {
-                lblMensaje.setText("Error al actualizar.");
-            }
         } else {
-            // inserción
-            if (password == null || password.isBlank()) {
-                lblMensaje.setText("Ingrese contraseña para nuevo usuario.");
-                return;
-            }
-            boolean ok = usuarioDAO.insertarUsuario(username, password, rol);
-            if (ok) {
-                lblMensaje.setText("Usuario guardado.");
-                cargarUsuarios();
-                onNuevo();
-            } else {
-                lblMensaje.setText("Error al guardar.");
-            }
+            // Inserción
+            exito = usuarioDAO.insertarUsuario(username, password, rol);
+        }
+
+        if (exito) {
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Operación Exitosa", "Usuario guardado con éxito.");
+            cargarUsuarios();
+            onNuevo();
+        } else {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error de Guardado", "No se pudo guardar el usuario. Verifique que el nombre de usuario no esté repetido.");
         }
     }
 
@@ -123,16 +128,42 @@ public class UsuariosController {
     private void onEliminar() {
         Usuario u = tablaUsuarios.getSelectionModel().getSelectedItem();
         if (u == null) {
-            lblMensaje.setText("Seleccione un usuario.");
+            mostrarAlerta(Alert.AlertType.WARNING, "Ningún Usuario Seleccionado", "Por favor, seleccione un usuario de la tabla para eliminar.");
             return;
         }
-        boolean ok = usuarioDAO.eliminarUsuario(u.getIdUsuario());
-        if (ok) {
-            lblMensaje.setText("Usuario eliminado.");
-            cargarUsuarios();
-            onNuevo();
-        } else {
-            lblMensaje.setText("No se pudo eliminar.");
+
+        Optional<ButtonType> result = mostrarAlertaConfirmacion("Eliminar Usuario",
+                "¿Está seguro de que desea eliminar a " + u.getUsername() + "?\n\nEsta acción no se puede deshacer.");
+
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            if (usuarioDAO.eliminarUsuario(u.getIdUsuario())) {
+                mostrarAlerta(Alert.AlertType.INFORMATION, "Usuario Eliminado", "El usuario ha sido eliminado con éxito.");
+                cargarUsuarios();
+                onNuevo();
+            } else {
+                mostrarAlerta(Alert.AlertType.ERROR, "Error al Eliminar", "No se pudo eliminar el usuario. Verifique que no tenga reservas asociadas.");
+            }
         }
+    }
+
+    private void mostrarAlerta(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        // Condicionalmente establecer el headerText
+        if (type == Alert.AlertType.ERROR || type == Alert.AlertType.WARNING) {
+            alert.setHeaderText("Por favor, corrija los siguientes errores:");
+        } else {
+            alert.setHeaderText(null); // No mostrar encabezado para información o éxito
+        }
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private Optional<ButtonType> mostrarAlertaConfirmacion(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        return alert.showAndWait();
     }
 }
