@@ -9,6 +9,20 @@ import java.util.List;
 
 public class ClienteDAO {
 
+    public int contar() {
+        String sql = "SELECT COUNT(*) FROM clientes";
+        try (Connection con = DBConnection.getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public boolean insertar(Cliente c) {
         String sql = "INSERT INTO clientes (nombre, apellido, dni, telefono, email, tipo) VALUES (?,?,?,?,?,?)";
         try (Connection con = DBConnection.getConnection();
@@ -54,6 +68,30 @@ public class ClienteDAO {
         return lista;
     }
 
+    public Cliente buscarPorDNI(String dni) {
+        String sql = "SELECT * FROM clientes WHERE dni=?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, dni);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new Cliente(
+                        rs.getInt("idCliente"),
+                        rs.getString("nombre"),
+                        rs.getString("apellido"),
+                        rs.getString("dni"),
+                        rs.getString("telefono"),
+                        rs.getString("email"),
+                        rs.getString("tipo")
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     public boolean actualizar(Cliente c) {
         String sql = "UPDATE clientes SET nombre=?, apellido=?, dni=?, telefono=?, email=?, tipo=? WHERE idCliente=?";

@@ -10,7 +10,20 @@ import java.util.List;
 
 public class HabitacionDAO {
 
-    // ... (insertar, listar, actualizar, eliminar se mantienen igual)
+    public int contar() {
+        String sql = "SELECT COUNT(*) FROM habitacion";
+        try (Connection con = DBConnection.getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public boolean insertar(Habitacion h) {
         String sql = "INSERT INTO habitacion (capacidad, tipoDeCama, caracteristicas, precio, estado) VALUES (?,?,?,?,?)";
         try (Connection con = DBConnection.getConnection();
@@ -92,22 +105,15 @@ public class HabitacionDAO {
                      "  SELECT rh.idHabitacion FROM reserva_habitacion rh " +
                      "  JOIN reserva r ON rh.idReserva = r.idReserva " +
                      "  WHERE r.estado != 'Anulada' AND (" +
-                     "      (r.fechaInicio <= ? AND r.fechaFin >= ?) OR " +
-                     "      (r.fechaInicio <= ? AND r.fechaFin >= ?) OR " +
-                     "      (r.fechaInicio >= ? AND r.fechaFin <= ?)" +
+                     "      r.fechaInicio <= ? AND r.fechaFin >= ?" +
                      "  )" +
                      ")";
 
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            // Convertimos LocalDate a java.sql.Date
             ps.setDate(1, Date.valueOf(fechaFin));
             ps.setDate(2, Date.valueOf(fechaInicio));
-            ps.setDate(3, Date.valueOf(fechaInicio));
-            ps.setDate(4, Date.valueOf(fechaFin));
-            ps.setDate(5, Date.valueOf(fechaInicio));
-            ps.setDate(6, Date.valueOf(fechaFin));
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {

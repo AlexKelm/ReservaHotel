@@ -11,6 +11,20 @@ import java.util.List;
 
 public class ReservaDAO {
 
+    public int contarActivas() {
+        String sql = "SELECT COUNT(*) FROM reserva WHERE estado = 'Confirmada' OR estado = 'Pendiente'";
+        try (Connection con = DBConnection.getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public int insertar(Reserva r) {
         String sql = "INSERT INTO reserva (idUsuario, idCliente, fechaInicio, fechaFin, estado, abono, precioTotal) VALUES (?,?,?,?,?,?,?)";
         try (Connection con = DBConnection.getConnection();
@@ -45,26 +59,22 @@ public class ReservaDAO {
             con = DBConnection.getConnection();
             if (con == null) return false;
 
-            // Iniciar transacción
             con.setAutoCommit(false);
 
-            // 1. Borrar de la tabla de unión
             try (PreparedStatement psHab = con.prepareStatement(sqlDeleteHabitaciones)) {
                 psHab.setInt(1, idReserva);
                 psHab.executeUpdate();
             }
 
-            // 2. Borrar de la tabla principal
             try (PreparedStatement psRes = con.prepareStatement(sqlDeleteReserva)) {
                 psRes.setInt(1, idReserva);
                 int filasAfectadas = psRes.executeUpdate();
                 if (filasAfectadas > 0) {
-                    con.commit(); // Confirmar transacción
+                    con.commit();
                     return true;
                 }
             }
 
-            // Si algo falla, revertir
             con.rollback();
             return false;
 
